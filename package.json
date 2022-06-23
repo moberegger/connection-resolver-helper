@@ -1,0 +1,46 @@
+{
+  "name": "connection-resolver-helper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "lint-staged": "lint-staged",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/moberegger/connection-resolver-helper.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/moberegger/connection-resolver-helper/issues"
+  },
+  "homepage": "https://github.com/moberegger/connection-resolver-helper#readme",
+  "pre-commit": [
+    "lint-staged"
+  ],
+  "devDependencies": {
+    "@tsconfig/node16": "1.0.3",
+    "@types/jest": "28.1.3",
+    "@typescript-eslint/eslint-plugin": "5.29.0",
+    "@typescript-eslint/parser": "5.29.0",
+    "eslint": "8.18.0",
+    "eslint-config-airbnb-typescript": "17.0.0",
+    "eslint-config-prettier": "8.5.0",
+    "eslint-plugin-import": "2.26.0",
+    "eslint-plugin-jest": "26.5.3",
+    "jest": "28.1.1",
+    "jest-extended": "2.0.0",
+    "lint-staged": "13.0.2",
+    "pre-commit": "1.2.2",
+    "prettier": "2.7.1",
+    "ts-jest": "28.0.5",
+    "typescript": "4.7.4"
+  },
+  "files": [
+    "dist/**/*"
+  ]
+}
