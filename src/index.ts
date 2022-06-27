@@ -33,14 +33,22 @@ const makeConnection =
     const { paginationRequired } = options;
     const { before, after, first, last } = args;
 
-    if (typeof first === "number" && first < 0)
+    const firstIsANumber = typeof first === "number";
+    const lastIsANumber = typeof last === "number";
+
+    if (firstIsANumber && first < 0)
       throw new UserInputError(
-        'Argument "first" must be a non-negative integer'
+        'Argument "first" must be a non-negative integer.'
       );
 
-    if (typeof last === "number" && last < 0)
+    if (lastIsANumber && last < 0)
       throw new UserInputError(
-        'Argument "last" must be a non-negative integer'
+        'Argument "last" must be a non-negative integer.'
+      );
+
+    if (firstIsANumber && lastIsANumber)
+      throw new UserInputError(
+        'Passing both "first" and "last" to paginate the connection is not supported.'
       );
 
     if (paginationRequired) {

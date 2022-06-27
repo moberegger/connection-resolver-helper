@@ -77,7 +77,7 @@ describe("Connection Helper", () => {
       const error = result.errors?.[0];
       expect(error).toBeInstanceOf(GraphQLError);
       expect(error?.message).toBe(
-        'Argument "first" must be a non-negative integer'
+        'Argument "first" must be a non-negative integer.'
       );
     });
 
@@ -101,7 +101,31 @@ describe("Connection Helper", () => {
       const error = result.errors?.[0];
       expect(error).toBeInstanceOf(GraphQLError);
       expect(error?.message).toBe(
-        'Argument "last" must be a non-negative integer'
+        'Argument "last" must be a non-negative integer.'
+      );
+    });
+
+    it('returns error if both "first" and "last" params are provided', async () => {
+      const result = await server.executeOperation({
+        query: gql`
+          query ($first: Int, $last: Int) {
+            things(first: $first, last: $last) {
+              edges {
+                node {
+                  id
+                  value
+                }
+              }
+            }
+          }
+        `,
+        variables: { first: 10, last: 10 },
+      });
+
+      const error = result.errors?.[0];
+      expect(error).toBeInstanceOf(GraphQLError);
+      expect(error?.message).toBe(
+        'Passing both "first" and "last" to paginate the connection is not supported.'
       );
     });
   });
