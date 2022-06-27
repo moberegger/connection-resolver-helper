@@ -8,6 +8,7 @@ import {
 } from "graphql-relay";
 
 interface MakeConnectionOptions {
+  maxLimit?: number;
   paginationRequired?: boolean;
 }
 
@@ -23,7 +24,8 @@ interface ExtendedConnection<Root, Node> extends Connection<Node> {
 
 const makeConnection =
   (
-    { paginationRequired }: MakeConnectionOptions = {
+    { maxLimit, paginationRequired }: MakeConnectionOptions = {
+      maxLimit: 100,
       paginationRequired: false,
     }
   ) =>
@@ -57,6 +59,16 @@ const makeConnection =
     if (paginationRequired && !firstIsANumber && !lastIsANumber)
       throw new UserInputError(
         "You must provide a `first` or `last` value to properly paginate the connection."
+      );
+
+    if (firstIsANumber && first > maxLimit!)
+      throw new UserInputError(
+        `Requesting ${first} records on the connection exceeds the "first" limit of ${maxLimit} records.`
+      );
+
+    if (lastIsANumber && last > maxLimit!)
+      throw new UserInputError(
+        `Requesting ${last} records on the connection exceeds the "last" limit of ${maxLimit} records.`
       );
 
     const response: any = await resolver(root, args, context, info);
