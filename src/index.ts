@@ -1,3 +1,4 @@
+import { UserInputError } from "apollo-server-errors";
 import { GraphQLFieldResolver, GraphQLResolveInfo } from "graphql";
 import {
   Connection,
@@ -30,9 +31,19 @@ const makeConnection =
     info: GraphQLResolveInfo
   ): Promise<ExtendedConnection<any, any>> => {
     const { paginationRequired } = options;
+    const { before, after, first, last } = args;
+
+    if (typeof first === "number" && first < 0)
+      throw new UserInputError(
+        'Argument "first" must be a non-negative integer'
+      );
+
+    if (typeof last === "number" && last < 0)
+      throw new UserInputError(
+        'Argument "last" must be a non-negative integer'
+      );
 
     if (paginationRequired) {
-      const { before, after, first, last } = args;
       const hasBeforeParams = before && last;
       const hasAfterParams = after && first;
 
