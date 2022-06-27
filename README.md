@@ -1,7 +1,6 @@
 # connection-resolver-helper
 
 TODO:
-- Configure whether pagination is required
 - Configure pagination limit
 - Configure whether to only use forward or backwards pagination (although this can just be limited in the schema...)
 - Configure to disable generating totalCount and nodes?

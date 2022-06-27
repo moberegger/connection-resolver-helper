@@ -47,16 +47,16 @@ const typeDefs = gql`
   }
 `;
 
-const resolvers = {
-  Query: {
-    things: makeConnection()(() => fixtures),
-  },
-};
-
-const server = new ApolloServer({ typeDefs, resolvers });
-
 describe("Connection Helper", () => {
   describe("input validation", () => {
+    const resolvers = {
+      Query: {
+        things: makeConnection()(() => fixtures),
+      },
+    };
+
+    const server = new ApolloServer({ typeDefs, resolvers });
+
     it('returns error if "first" param is a negative integer', async () => {
       const result = await server.executeOperation({
         query: gql`
@@ -130,7 +130,50 @@ describe("Connection Helper", () => {
     });
   });
 
+  describe("configuration", () => {
+    describe("paginationRequired", () => {
+      const resolvers = {
+        Query: {
+          things: makeConnection({ paginationRequired: true })(() => fixtures),
+        },
+      };
+
+      const server = new ApolloServer({ typeDefs, resolvers });
+
+      it('returns error if neither "first" or "last" params are provided', async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query {
+              things {
+                edges {
+                  node {
+                    id
+                    value
+                  }
+                }
+              }
+            }
+          `,
+        });
+
+        const error = result.errors?.[0];
+        expect(error).toBeInstanceOf(GraphQLError);
+        expect(error?.message).toBe(
+          "You must provide a `first` or `last` value to properly paginate the connection."
+        );
+      });
+    });
+  });
+
   it("can run the connection", async () => {
+    const resolvers = {
+      Query: {
+        things: makeConnection()(() => fixtures),
+      },
+    };
+
+    const server = new ApolloServer({ typeDefs, resolvers });
+
     const result = await server.executeOperation({
       query: gql`
         query {

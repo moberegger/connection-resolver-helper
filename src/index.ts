@@ -22,7 +22,11 @@ interface ExtendedConnection<Root, Node> extends Connection<Node> {
 }
 
 const makeConnection =
-  (options: MakeConnectionOptions = { paginationRequired: false }) =>
+  (
+    { paginationRequired }: MakeConnectionOptions = {
+      paginationRequired: false,
+    }
+  ) =>
   (resolver: GraphQLFieldResolver<any, any>) =>
   async (
     root: any,
@@ -30,8 +34,7 @@ const makeConnection =
     context: any,
     info: GraphQLResolveInfo
   ): Promise<ExtendedConnection<any, any>> => {
-    const { paginationRequired } = options;
-    const { before, after, first, last } = args;
+    const { first, last } = args;
 
     const firstIsANumber = typeof first === "number";
     const lastIsANumber = typeof last === "number";
@@ -51,12 +54,10 @@ const makeConnection =
         'Passing both "first" and "last" to paginate the connection is not supported.'
       );
 
-    if (paginationRequired) {
-      const hasBeforeParams = before && last;
-      const hasAfterParams = after && first;
-
-      if (!hasBeforeParams && !hasAfterParams) throw new Error();
-    }
+    if (paginationRequired && !firstIsANumber && !lastIsANumber)
+      throw new UserInputError(
+        "You must provide a `first` or `last` value to properly paginate the connection."
+      );
 
     const response: any = await resolver(root, args, context, info);
 
