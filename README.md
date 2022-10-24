@@ -12,5 +12,4 @@ Things to test:
   - With pagination arguments, limited results are returned
 
 Features
-- Introduce new pagination param error, with specific error code(s)
 - Configure validate cursor, with default of cursorToOffset

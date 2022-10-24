@@ -1,6 +1,6 @@
 {
   "name": "connection-resolver-helper",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -23,7 +23,6 @@
     "lint-staged"
   ],
   "dependencies": {
-    "apollo-server-errors": "3.3.1",
     "graphql": "16.6.0",
     "graphql-relay": "0.10.0"
   },
