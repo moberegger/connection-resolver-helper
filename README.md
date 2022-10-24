@@ -3,7 +3,6 @@
 TODO:
 - Configure whether to only use forward or backwards pagination (although this can just be limited in the schema...)
 - Configure to disable generating totalCount and nodes?
-- Validate cursor argument (ie. cannot be empty string)
 
 Things to test:
 - With no pagination arguments, all results are returned

@@ -1,6 +1,7 @@
 import { ApolloServer } from "apollo-server";
 import { GraphQLError } from "graphql";
 import gql from "graphql-tag";
+import "jest-extended";
 
 import makeConnection from ".";
 
@@ -126,6 +127,54 @@ describe("Connection Helper", () => {
       expect(error).toBeInstanceOf(GraphQLError);
       expect(error?.message).toBe(
         'Passing both "first" and "last" to paginate the connection is not supported.'
+      );
+    });
+
+    it("returns error if after cursor is invalid", async () => {
+      const result = await server.executeOperation({
+        query: gql`
+          query ($first: Int, $after: String) {
+            things(first: $first, after: $after) {
+              edges {
+                node {
+                  id
+                  value
+                }
+              }
+            }
+          }
+        `,
+        variables: { first: 10, after: "" },
+      });
+
+      const error = result.errors?.[0];
+      expect(error).toBeInstanceOf(GraphQLError);
+      expect(error?.message).toBe(
+        'Argument "after" must be a non-empty string'
+      );
+    });
+
+    it("returns error if before cursor is invalid", async () => {
+      const result = await server.executeOperation({
+        query: gql`
+          query ($first: Int, $before: String) {
+            things(first: $first, before: $before) {
+              edges {
+                node {
+                  id
+                  value
+                }
+              }
+            }
+          }
+        `,
+        variables: { first: 10, before: "" },
+      });
+
+      const error = result.errors?.[0];
+      expect(error).toBeInstanceOf(GraphQLError);
+      expect(error?.message).toBe(
+        'Argument "before" must be a non-empty string'
       );
     });
   });
