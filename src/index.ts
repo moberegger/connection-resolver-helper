@@ -34,19 +34,19 @@ export class GraphQLConnectionError extends GraphQLError {
 }
 
 const makeConnection =
-  (
+  <Root, Node, Args extends ConnectionArguments = ConnectionArguments>(
     { maxLimit, paginationRequired }: MakeConnectionOptions = {
       maxLimit: 100,
       paginationRequired: false,
     }
   ) =>
-  (resolver: GraphQLFieldResolver<any, any>) =>
+  (resolver: GraphQLFieldResolver<Root, any, Args, Promise<Node[]> | Node[]>) =>
   async (
-    root: any,
-    args: ConnectionArguments,
+    root: Root,
+    args: Args,
     context: any,
     info: GraphQLResolveInfo
-  ): Promise<ExtendedConnection<any, any>> => {
+  ): Promise<ExtendedConnection<Root, Node>> => {
     const { after, before, first, last } = args;
 
     const afterIsDefined = after !== undefined && after !== null;
@@ -94,7 +94,7 @@ const makeConnection =
         `Requesting ${last} records on the connection exceeds the "last" limit of ${maxLimit} records.`
       );
 
-    const response: any = await resolver(root, args, context, info);
+    const response = await resolver(root, args, context, info);
 
     const connection = connectionFromArray(response, args);
 
