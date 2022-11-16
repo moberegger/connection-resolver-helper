@@ -100,8 +100,12 @@ const makeConnection =
 
     return {
       ...connection,
-      nodes: connection.edges.map((edge) => edge.node),
-      edges: connection.edges.map((edge) => ({ root, ...edge })),
+      get nodes() {
+        return connection.edges.map((edge) => edge.node);
+      },
+      get edges() {
+        return connection.edges.map((edge) => ({ root, ...edge }));
+      },
       totalCount: connection.edges.length,
     };
   };
