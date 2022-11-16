@@ -181,35 +181,71 @@ describe("Connection Helper", () => {
 
   describe("configuration", () => {
     describe("paginationRequired", () => {
-      const resolvers = {
-        Query: {
-          things: makeConnection({ paginationRequired: true })(() => fixtures),
-        },
-      };
+      describe("when pagination is required", () => {
+        const resolvers = {
+          Query: {
+            things: makeConnection({ paginationRequired: true })(
+              () => fixtures
+            ),
+          },
+        };
 
-      const server = new ApolloServer({ typeDefs, resolvers });
+        const server = new ApolloServer({ typeDefs, resolvers });
 
-      it('returns error if neither "first" or "last" params are provided', async () => {
-        const result = await server.executeOperation({
-          query: gql`
-            query {
-              things {
-                edges {
-                  node {
-                    id
-                    value
+        it('returns error if neither "first" or "last" params are provided', async () => {
+          const result = await server.executeOperation({
+            query: gql`
+              query {
+                things {
+                  edges {
+                    node {
+                      id
+                      value
+                    }
                   }
                 }
               }
-            }
-          `,
-        });
+            `,
+          });
 
-        const error = result.errors?.[0];
-        expect(error).toBeInstanceOf(GraphQLError);
-        expect(error?.message).toBe(
-          "You must provide a `first` or `last` value to properly paginate the connection."
-        );
+          const error = result.errors?.[0];
+          expect(error).toBeInstanceOf(GraphQLError);
+          expect(error?.message).toBe(
+            "You must provide a `first` or `last` value to properly paginate the connection."
+          );
+        });
+      });
+
+      describe("when pagination is not required", () => {
+        const resolvers = {
+          Query: {
+            things: makeConnection({ paginationRequired: false })(
+              () => fixtures
+            ),
+          },
+        };
+
+        const server = new ApolloServer({ typeDefs, resolvers });
+
+        it('does not return error if neither "first" or "last" params are provided', async () => {
+          const result = await server.executeOperation({
+            query: gql`
+              query {
+                things {
+                  edges {
+                    node {
+                      id
+                      value
+                    }
+                  }
+                }
+              }
+            `,
+          });
+
+          const error = result.errors?.[0];
+          expect(error).toBeNil();
+        });
       });
     });
 
