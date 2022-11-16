@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "lint-staged": "lint-staged",
-    "test": "jest"
+    "test": "jest",
+    "test:watch": "jest --watchAll"
   },
   "repository": {
     "type": "git",
