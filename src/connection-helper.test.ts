@@ -1,15 +1,18 @@
 import { ApolloServer } from "apollo-server";
 import { GraphQLError } from "graphql";
+import { offsetToCursor } from "graphql-relay";
 import gql from "graphql-tag";
 import "jest-extended";
 
 import makeConnection from ".";
 
 const fixtures = [
-  { id: 1, value: "A" },
-  { id: 2, value: "B" },
-  { id: 3, value: "C" },
+  { id: "1", value: "A" },
+  { id: "2", value: "B" },
+  { id: "3", value: "C" },
 ];
+
+const edges = fixtures.map((node) => ({ node }));
 
 const typeDefs = gql`
   interface Node {
@@ -49,6 +52,151 @@ const typeDefs = gql`
 `;
 
 describe("Connection Helper", () => {
+  describe("pagination", () => {
+    const server = new ApolloServer({
+      typeDefs,
+      resolvers: {
+        Query: {
+          things: makeConnection()(() => fixtures),
+        },
+      },
+    });
+
+    it("returns all items when no pagination arguments are provided", async () => {
+      const result = await server.executeOperation({
+        query: gql`
+          query {
+            things {
+              edges {
+                node {
+                  id
+                  value
+                }
+              }
+            }
+          }
+        `,
+      });
+
+      expect(result.errors).toBeNil();
+      expect(result.data).toEqual({
+        things: {
+          edges,
+        },
+      });
+    });
+
+    describe("forwards pagination", () => {
+      it("only returns first n items when first argument is provided", async () => {
+        const first = 1;
+        const result = await server.executeOperation({
+          query: gql`
+            query ($first: Int!) {
+              things(first: $first) {
+                edges {
+                  node {
+                    id
+                    value
+                  }
+                }
+              }
+            }
+          `,
+          variables: { first },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data).toEqual({
+          things: {
+            edges: [edges[0]],
+          },
+        });
+      });
+
+      it("only returns first n items after provided cursor", async () => {
+        const first = 1;
+        const after = offsetToCursor(0);
+        const result = await server.executeOperation({
+          query: gql`
+            query ($first: Int!, $after: String!) {
+              things(first: $first, after: $after) {
+                edges {
+                  node {
+                    id
+                    value
+                  }
+                }
+              }
+            }
+          `,
+          variables: { first, after },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data).toEqual({
+          things: {
+            edges: [edges[1]],
+          },
+        });
+      });
+    });
+
+    describe("backwards pagination", () => {
+      it("only returns last n items when first argument is provided", async () => {
+        const last = 1;
+        const result = await server.executeOperation({
+          query: gql`
+            query ($last: Int!) {
+              things(last: $last) {
+                edges {
+                  node {
+                    id
+                    value
+                  }
+                }
+              }
+            }
+          `,
+          variables: { last },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data).toEqual({
+          things: {
+            edges: [edges[2]],
+          },
+        });
+      });
+
+      it("only returns last n items before provided cursor", async () => {
+        const last = 1;
+        const before = offsetToCursor(2);
+        const result = await server.executeOperation({
+          query: gql`
+            query ($last: Int!, $before: String!) {
+              things(last: $last, before: $before) {
+                edges {
+                  node {
+                    id
+                    value
+                  }
+                }
+              }
+            }
+          `,
+          variables: { last, before },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data).toEqual({
+          things: {
+            edges: [edges[1]],
+          },
+        });
+      });
+    });
+  });
+
   describe("input validation", () => {
     const resolvers = {
       Query: {
@@ -243,8 +391,7 @@ describe("Connection Helper", () => {
             `,
           });
 
-          const error = result.errors?.[0];
-          expect(error).toBeNil();
+          expect(result.errors).toBeNil();
         });
       });
     });
@@ -308,42 +455,6 @@ describe("Connection Helper", () => {
           `Requesting ${last} records on the connection exceeds the "last" limit of ${maxLimit} records.`
         );
       });
-    });
-  });
-
-  it("can run the connection", async () => {
-    const resolvers = {
-      Query: {
-        things: makeConnection()(() => fixtures),
-      },
-    };
-
-    const server = new ApolloServer({ typeDefs, resolvers });
-
-    const result = await server.executeOperation({
-      query: gql`
-        query {
-          things {
-            edges {
-              node {
-                id
-                value
-              }
-            }
-          }
-        }
-      `,
-    });
-
-    expect(result.errors).toBeNil();
-    expect(result.data).toEqual({
-      things: {
-        edges: [
-          { node: { id: "1", value: "A" } },
-          { node: { id: "2", value: "B" } },
-          { node: { id: "3", value: "C" } },
-        ],
-      },
     });
   });
 });
