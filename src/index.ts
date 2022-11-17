@@ -8,22 +8,30 @@ import {
   ConnectionArguments,
   Edge,
   connectionFromArray,
+  offsetToCursor,
 } from "graphql-relay";
 
-interface MakeConnectionOptions {
+export { offsetToCursor };
+
+export interface MakeConnectionOptions {
   maxLimit?: number;
   paginationRequired?: boolean;
+  toCursor?: ToCursorFunction;
 }
 
-interface ExtendedEdge<Root, Node> extends Edge<Node> {
+export interface ExtendedEdge<Root, Node> extends Edge<Node> {
   root: Root;
 }
 
-interface ExtendedConnection<Root, Node> extends Connection<Node> {
+export interface ExtendedConnection<Root, Node> extends Connection<Node> {
   edges: Array<ExtendedEdge<Root, Node>>;
   nodes: Array<Node>;
   totalCount: number;
 }
+
+export type ToCursorFunction = <Node>(node: Node, index: number) => string;
+
+const defaultToCursor = <Node>(_: Node, index: number) => offsetToCursor(index);
 
 export class GraphQLConnectionError extends GraphQLError {
   constructor(message: string) {
@@ -34,12 +42,11 @@ export class GraphQLConnectionError extends GraphQLError {
 }
 
 const makeConnection =
-  <Root, Node, Args extends ConnectionArguments = ConnectionArguments>(
-    { maxLimit, paginationRequired }: MakeConnectionOptions = {
-      maxLimit: 100,
-      paginationRequired: false,
-    }
-  ) =>
+  <Root, Node, Args extends ConnectionArguments = ConnectionArguments>({
+    maxLimit = 100,
+    paginationRequired = false,
+    toCursor = defaultToCursor,
+  }: MakeConnectionOptions = {}) =>
   (resolver: GraphQLFieldResolver<Root, any, Args, Promise<Node[]> | Node[]>) =>
   async (
     root: Root,
@@ -104,12 +111,14 @@ const makeConnection =
         return connection.edges.map((edge) => edge.node);
       },
       get edges() {
-        return connection.edges.map((edge) => ({ root, ...edge }));
+        return connection.edges.map((edge, index) => ({
+          ...edge,
+          root,
+          cursor: toCursor(edge.node, index),
+        }));
       },
       totalCount: connection.edges.length,
     };
   };
-
-export { offsetToCursor } from "graphql-relay";
 
 export default makeConnection;
