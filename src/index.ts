@@ -101,23 +101,24 @@ const makeConnection =
         `Requesting ${last} records on the connection exceeds the "last" limit of ${maxLimit} records.`
       );
 
-    const response = await resolver(root, args, context, info);
-
-    const connection = connectionFromArray(response, args);
+    const { edges, pageInfo } = connectionFromArray(
+      await resolver(root, args, context, info),
+      args
+    );
 
     return {
-      ...connection,
+      pageInfo,
       get nodes() {
-        return connection.edges.map((edge) => edge.node);
+        return edges.map((edge) => edge.node);
       },
       get edges() {
-        return connection.edges.map((edge, index) => ({
+        return edges.map((edge, index) => ({
           ...edge,
           root,
           cursor: toCursor(edge.node, index),
         }));
       },
-      totalCount: connection.edges.length,
+      totalCount: edges.length,
     };
   };
 
