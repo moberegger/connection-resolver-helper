@@ -110,4 +110,6 @@ const makeConnection =
     };
   };
 
+export { offsetToCursor } from "graphql-relay";
+
 export default makeConnection;
