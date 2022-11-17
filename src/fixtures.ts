@@ -5,6 +5,7 @@ export const fixtures = [
   { id: "1", value: "A" },
   { id: "2", value: "B" },
   { id: "3", value: "C" },
+  { id: "4", value: "D" },
 ];
 
 export const edges = fixtures.map((node) => ({ node }));
