@@ -42,8 +42,7 @@ const defaultValidateCursor = (cursor: string) =>
 export class GraphQLConnectionError extends GraphQLError {
   constructor(message: string) {
     super(message, { extensions: { code: "RELAY_PAGINATION_ERROR" } });
-
-    Object.defineProperty(this, "name", { value: "GraphQLConnectionError" });
+    this.name = "GraphQLConnectionError";
   }
 }
 
