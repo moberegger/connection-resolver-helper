@@ -8,8 +8,3 @@ Things to test:
 
 - Manual pagination
   - With pagination arguments, limited results are returned
-
-Features
-
-- Configure validate cursor, with default of cursorToOffset
--

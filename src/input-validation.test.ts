@@ -108,7 +108,7 @@ describe("input validation", () => {
 
     const error = result.errors?.[0];
     expect(error).toBeInstanceOf(GraphQLError);
-    expect(error?.message).toBe('Argument "after" must be a non-empty string');
+    expect(error?.message).toBe('Argument "after" is invalid.');
   });
 
   it("returns error if before cursor is invalid", async () => {
@@ -130,6 +130,6 @@ describe("input validation", () => {
 
     const error = result.errors?.[0];
     expect(error).toBeInstanceOf(GraphQLError);
-    expect(error?.message).toBe('Argument "before" must be a non-empty string');
+    expect(error?.message).toBe('Argument "before" is invalid.');
   });
 });

@@ -17,6 +17,7 @@ export interface MakeConnectionOptions {
   maxLimit?: number;
   paginationRequired?: boolean;
   toCursor?: ToCursorFunction;
+  validateCursor?: ValidateCursorFunction;
 }
 
 export interface ExtendedEdge<Root, Node> extends Edge<Node> {
@@ -31,7 +32,12 @@ export interface ExtendedConnection<Root, Node> extends Connection<Node> {
 
 export type ToCursorFunction = <Node>(node: Node, index: number) => string;
 
+export type ValidateCursorFunction = (cursor: string) => boolean;
+
 const defaultToCursor = <Node>(_: Node, index: number) => offsetToCursor(index);
+
+const defaultValidateCursor = (cursor: string) =>
+  typeof cursor === "string" && cursor.length > 0;
 
 export class GraphQLConnectionError extends GraphQLError {
   constructor(message: string) {
@@ -46,6 +52,7 @@ const makeConnection =
     maxLimit = 100,
     paginationRequired = false,
     toCursor = defaultToCursor,
+    validateCursor = defaultValidateCursor,
   }: MakeConnectionOptions = {}) =>
   (resolver: GraphQLFieldResolver<Root, any, Args, Promise<Node[]> | Node[]>) =>
   async (
@@ -76,15 +83,11 @@ const makeConnection =
         'Passing both "first" and "last" to paginate the connection is not supported.'
       );
 
-    if (afterIsDefined && (typeof after !== "string" || after.length === 0))
-      throw new GraphQLConnectionError(
-        'Argument "after" must be a non-empty string'
-      );
+    if (afterIsDefined && !validateCursor(after))
+      throw new GraphQLConnectionError('Argument "after" is invalid.');
 
-    if (beforeIsDefined && (typeof before !== "string" || before.length === 0))
-      throw new GraphQLConnectionError(
-        'Argument "before" must be a non-empty string'
-      );
+    if (beforeIsDefined && !validateCursor(before))
+      throw new GraphQLConnectionError('Argument "before" is invalid.');
 
     if (paginationRequired && !firstIsDefined && !lastIsDefined)
       throw new GraphQLConnectionError(
