@@ -34,6 +34,8 @@ export type ToCursorFunction = <Node>(node: Node, index: number) => string;
 
 export type ValidateCursorFunction = (cursor: string) => boolean;
 
+type Nodes<Node> = Promise<Node[]> | Node[];
+
 const defaultToCursor = <Node>(_: Node, index: number) => offsetToCursor(index);
 
 const defaultValidateCursor = (cursor: string) =>
@@ -47,17 +49,17 @@ export class GraphQLConnectionError extends GraphQLError {
 }
 
 const makeConnection =
-  <Root, Node, Args extends ConnectionArguments = ConnectionArguments>({
+  <Root, Node, Context, Args extends ConnectionArguments>({
     maxLimit = 100,
     paginationRequired = false,
     toCursor = defaultToCursor,
     validateCursor = defaultValidateCursor,
   }: MakeConnectionOptions = {}) =>
-  (resolver: GraphQLFieldResolver<Root, any, Args, Promise<Node[]> | Node[]>) =>
+  (resolver: GraphQLFieldResolver<Root, Context, Args, Nodes<Node>>) =>
   async (
     root: Root,
     args: Args,
-    context: any,
+    context: Context,
     info: GraphQLResolveInfo
   ): Promise<ExtendedConnection<Root, Node>> => {
     const { after, before, first, last } = args;
