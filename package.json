@@ -26,12 +26,14 @@
   ],
   "dependencies": {
     "graphql": "16.6.0",
-    "graphql-relay": "0.10.0"
+    "graphql-relay": "0.10.0",
+    "lodash.once": "4.1.1"
   },
   "devDependencies": {
     "@jest/types": "29.3.1",
     "@tsconfig/node16": "1.0.3",
     "@types/jest": "29.2.3",
+    "@types/lodash.once": "4.1.7",
     "@typescript-eslint/eslint-plugin": "5.45.0",
     "@typescript-eslint/parser": "5.45.0",
     "apollo-server": "3.11.1",

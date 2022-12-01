@@ -1,33 +1,14 @@
-import {
-  GraphQLError,
-  GraphQLFieldResolver,
-  GraphQLResolveInfo,
-} from "graphql";
-import {
-  Connection,
-  ConnectionArguments,
-  Edge,
-  connectionFromArray,
-  offsetToCursor,
-} from "graphql-relay";
+import { GraphQLFieldResolver, GraphQLResolveInfo } from "graphql";
+import { ConnectionArguments, offsetToCursor } from "graphql-relay";
 
-export { offsetToCursor };
+import GraphQLConnectionError from "./GraphQLConnectionError";
+import { toConnection } from "./toConnection";
 
 export interface MakeConnectionOptions<Node> {
   maxLimit?: number;
   paginationRequired?: boolean;
   toCursor?: ToCursorFunction<Node>;
   validateCursor?: ValidateCursorFunction;
-}
-
-export interface ExtendedEdge<Root, Node> extends Edge<Node> {
-  root: Root;
-}
-
-export interface ExtendedConnection<Root, Node> extends Connection<Node> {
-  edges: Array<ExtendedEdge<Root, Node>>;
-  nodes: Array<Node>;
-  totalCount: number;
 }
 
 export type ToCursorFunction<Node> = (node: Node, index: number) => string;
@@ -38,13 +19,6 @@ const defaultToCursor = <Node>(_: Node, index: number) => offsetToCursor(index);
 
 const defaultValidateCursor = (cursor: string) =>
   typeof cursor === "string" && cursor.length > 0;
-
-export class GraphQLConnectionError extends GraphQLError {
-  constructor(message: string) {
-    super(message, { extensions: { code: "RELAY_PAGINATION_ERROR" } });
-    this.name = "GraphQLConnectionError";
-  }
-}
 
 const makeConnection =
   <
@@ -71,7 +45,7 @@ const makeConnection =
     args: Args,
     context: Context,
     info: GraphQLResolveInfo
-  ): Promise<ExtendedConnection<Root, Node>> => {
+  ) => {
     const { after, before, first, last } = args;
 
     const afterIsDefined = after !== undefined && after !== null;
@@ -115,25 +89,13 @@ const makeConnection =
         `Requesting ${last} records on the connection exceeds the "last" limit of ${maxLimit} records.`
       );
 
-    const { edges, pageInfo } = connectionFromArray(
-      await resolver(root, args, context, info),
-      args
+    return toConnection(
+      root,
+      (await resolver(root, args, context, info)) ?? [],
+      args,
+      toCursor
     );
-
-    return {
-      pageInfo,
-      get nodes() {
-        return edges.map((edge) => edge.node);
-      },
-      get edges() {
-        return edges.map((edge, index) => ({
-          ...edge,
-          root,
-          cursor: toCursor(edge.node, index),
-        }));
-      },
-      totalCount: edges.length,
-    };
   };
 
 export default makeConnection;
+export { GraphQLConnectionError, toConnection, offsetToCursor };
