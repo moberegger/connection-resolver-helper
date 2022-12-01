@@ -6,7 +6,7 @@ import { GraphQLError } from "graphql";
 import gql from "graphql-tag";
 
 import { fixtures, typeDefs } from "./fixtures";
-import makeConnection from ".";
+import makeConnection, { offsetToCursor } from ".";
 
 describe("configuration", () => {
   describe("paginationRequired", () => {
@@ -146,7 +146,7 @@ describe("configuration", () => {
 
     const server = new ApolloServer({ typeDefs, resolvers });
 
-    it("uses a customer toCursor function", async () => {
+    it("uses custom toCursor function", async () => {
       const result = await server.executeOperation({
         query: gql`
           query ($first: Int!) {
@@ -167,6 +167,40 @@ describe("configuration", () => {
 
       expect(result.errors).toBeNil();
       expect(result.data?.things.edges[0].cursor).toBe("CBA");
+    });
+  });
+
+  describe("validateCursor", () => {
+    const validateCursor = (cursor: string) => typeof cursor === "number";
+
+    const resolvers = {
+      Query: {
+        things: makeConnection({ validateCursor })(() => fixtures),
+      },
+    };
+
+    const server = new ApolloServer({ typeDefs, resolvers });
+
+    it("uses custom validateCursor function", async () => {
+      const result = await server.executeOperation({
+        query: gql`
+          query ($first: Int, $after: String) {
+            things(first: $first, after: $after) {
+              edges {
+                node {
+                  id
+                  value
+                }
+              }
+            }
+          }
+        `,
+        variables: { first: 1, after: offsetToCursor(0) },
+      });
+
+      const error = result.errors?.[0];
+      expect(error).toBeInstanceOf(GraphQLError);
+      expect(error?.message).toBe('Argument "after" is invalid.');
     });
   });
 });
