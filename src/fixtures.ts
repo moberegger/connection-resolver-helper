@@ -2,10 +2,10 @@
 import gql from "graphql-tag";
 
 export const fixtures = [
-  { id: "1", value: "A" },
-  { id: "2", value: "B" },
-  { id: "3", value: "C" },
-  { id: "4", value: "D" },
+  { id: "1", value: "ABC" },
+  { id: "2", value: "BCD" },
+  { id: "3", value: "CDE" },
+  { id: "4", value: "DEF" },
 ];
 
 export const edges = fixtures.map((node) => ({ node }));

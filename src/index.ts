@@ -13,10 +13,10 @@ import {
 
 export { offsetToCursor };
 
-export interface MakeConnectionOptions {
+export interface MakeConnectionOptions<Node> {
   maxLimit?: number;
   paginationRequired?: boolean;
-  toCursor?: ToCursorFunction;
+  toCursor?: ToCursorFunction<Node>;
   validateCursor?: ValidateCursorFunction;
 }
 
@@ -30,11 +30,9 @@ export interface ExtendedConnection<Root, Node> extends Connection<Node> {
   totalCount: number;
 }
 
-export type ToCursorFunction = <Node>(node: Node, index: number) => string;
+export type ToCursorFunction<Node> = (node: Node, index: number) => string;
 
 export type ValidateCursorFunction = (cursor: string) => boolean;
-
-type Nodes<Node> = Promise<Node[]> | Node[];
 
 const defaultToCursor = <Node>(_: Node, index: number) => offsetToCursor(index);
 
@@ -49,13 +47,25 @@ export class GraphQLConnectionError extends GraphQLError {
 }
 
 const makeConnection =
-  <Root, Node, Context, Args extends ConnectionArguments>({
+  <
+    Root,
+    Node,
+    Context,
+    Args extends ConnectionArguments = ConnectionArguments
+  >({
     maxLimit = 100,
     paginationRequired = false,
     toCursor = defaultToCursor,
     validateCursor = defaultValidateCursor,
-  }: MakeConnectionOptions = {}) =>
-  (resolver: GraphQLFieldResolver<Root, Context, Args, Nodes<Node>>) =>
+  }: MakeConnectionOptions<Node> = {}) =>
+  (
+    resolver: GraphQLFieldResolver<
+      Root,
+      Context,
+      Args,
+      Promise<Node[]> | Node[]
+    >
+  ) =>
   async (
     root: Root,
     args: Args,

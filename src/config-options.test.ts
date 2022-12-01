@@ -133,4 +133,40 @@ describe("configuration", () => {
       );
     });
   });
+
+  describe("toCursor", () => {
+    const toCursor = (node: typeof fixtures[number]) =>
+      node.value.split("").reverse().join("");
+
+    const resolvers = {
+      Query: {
+        things: makeConnection({ toCursor })(() => fixtures),
+      },
+    };
+
+    const server = new ApolloServer({ typeDefs, resolvers });
+
+    it("uses a customer toCursor function", async () => {
+      const result = await server.executeOperation({
+        query: gql`
+          query ($first: Int!) {
+            things(first: $first) {
+              edges {
+                cursor
+
+                node {
+                  id
+                  value
+                }
+              }
+            }
+          }
+        `,
+        variables: { first: 1 },
+      });
+
+      expect(result.errors).toBeNil();
+      expect(result.data?.things.edges[0].cursor).toBe("CBA");
+    });
+  });
 });
