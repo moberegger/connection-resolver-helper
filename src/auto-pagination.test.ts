@@ -1,6 +1,7 @@
 /// <reference types="jest-extended" />
 
 import { ApolloServer } from "apollo-server";
+import { GraphQLError } from "graphql";
 import gql from "graphql-tag";
 
 import { edges, fixtures, typeDefs } from "./fixtures";
@@ -177,8 +178,36 @@ describe("pagination", () => {
       });
     });
 
-    // XXX graphql-relay defaults to the beginning of the list if the after cursor is more than the size of the list
-    it.todo("properly handles cursors past last page item");
+    it("errors when after cursor is not found", async () => {
+      const result = await server.executeOperation({
+        query: gql`
+          query ($first: Int!, $after: String!) {
+            things(first: $first, after: $after) {
+              pageInfo {
+                hasNextPage
+                hasPreviousPage
+                startCursor
+                endCursor
+              }
+
+              edges {
+                node {
+                  id
+                  value
+                }
+              }
+            }
+          }
+        `,
+        variables: { first: 2, after: "DoesNotExist" },
+      });
+
+      const error = result.errors?.[0];
+      expect(error).toBeInstanceOf(GraphQLError);
+      expect(error?.message).toBe(
+        `No record found for the provided "after" cursor: "DoesNotExist".`
+      );
+    });
   });
 
   describe("backwards pagination", () => {
@@ -318,7 +347,35 @@ describe("pagination", () => {
       });
     });
 
-    // XXX graphql-relay defaults to the end of the list if the before cursor is less than 0
-    it.todo("properly handles cursors before first page item");
+    it("errors when after cursor is not found", async () => {
+      const result = await server.executeOperation({
+        query: gql`
+          query ($last: Int!, $before: String!) {
+            things(last: $last, before: $before) {
+              pageInfo {
+                hasNextPage
+                hasPreviousPage
+                startCursor
+                endCursor
+              }
+
+              edges {
+                node {
+                  id
+                  value
+                }
+              }
+            }
+          }
+        `,
+        variables: { last: 2, before: "DoesNotExist" },
+      });
+
+      const error = result.errors?.[0];
+      expect(error).toBeInstanceOf(GraphQLError);
+      expect(error?.message).toBe(
+        `No record found for the provided "before" cursor: "DoesNotExist".`
+      );
+    });
   });
 });

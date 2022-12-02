@@ -1,6 +1,7 @@
 import { Connection, ConnectionArguments, Edge } from "graphql-relay";
 import once from "lodash.once";
 
+import GraphQLConnectionError from "./GraphQLConnectionError";
 import type { ToCursorFunction } from ".";
 
 export interface ExtendedEdge<Root, Node> extends Edge<Node> {
@@ -43,9 +44,16 @@ export const toConnection = <Root, Node>(
     );
 
     if (isForwardsPagination) {
-      const startIdx = after
-        ? edges.findIndex((edge) => edge.cursor === after) + 1
+      let startIdx = after
+        ? edges.findIndex((edge) => edge.cursor === after)
         : 0;
+
+      if (startIdx === -1)
+        throw new GraphQLConnectionError(
+          `No record found for the provided "after" cursor: "${after}".`
+        );
+
+      if (after) startIdx += 1;
 
       return edges.slice(startIdx, startIdx + first);
     }
@@ -54,6 +62,11 @@ export const toConnection = <Root, Node>(
       const endIdx = before
         ? edges.findIndex((edge) => edge.cursor === before)
         : edges.length;
+
+      if (endIdx === -1)
+        throw new GraphQLConnectionError(
+          `No record found for the provided "before" cursor: "${before}".`
+        );
 
       return edges.slice(endIdx - last, endIdx);
     }
