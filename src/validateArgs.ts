@@ -1,9 +1,7 @@
-
-import { ConnectionArguments } from "graphql-relay";
-
 import GraphQLConnectionError from "./GraphQLConnectionError";
 
 import type { ValidateCursorFunction } from ".";
+import type { ConnectionArguments } from "graphql-relay";
 
 export default ({
     maxLimit,
