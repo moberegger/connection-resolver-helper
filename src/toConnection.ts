@@ -14,10 +14,17 @@ export interface ExtendedConnection<Root, Node> extends Connection<Node> {
   totalCount: number;
 }
 
+const throwCursorError = (arg: string, cursor: string) => {
+  throw new GraphQLConnectionError(
+    `No record found for the provided "${arg}" cursor: "${cursor}".`
+  );
+};
+
 export const toEdge =
   <Node>(toCursor: ToCursorFunction<Node>) =>
   <Root>(index: number, root: Root, node: Node): ExtendedEdge<Root, Node> => {
     const getCursor = once(() => toCursor(node, index));
+
     return {
       root,
       node,
@@ -30,76 +37,85 @@ export const toEdge =
 export const toConnection = <Root, Node>(
   root: Root,
   data: Node[],
-  args: ConnectionArguments,
+  { first, after, before, last }: ConnectionArguments,
   toCursor: ToCursorFunction<Node>
 ): ExtendedConnection<Root, Node> => {
-  const { first, after, before, last } = args;
+  const afterIsDefined = typeof after === "string";
+  const beforeIsDefined = typeof before === "string";
+  const firstIsDefined = typeof first === "number";
+  const lastIsDefined = typeof last === "number";
 
-  const isForwardsPagination = typeof first === "number";
-  const isBackwardsPagination = typeof last === "number";
+  const makeEdge = toEdge(toCursor);
 
   const getEdges = once(() => {
-    const edges = data.map((node, index) =>
-      toEdge(toCursor)(index, root, node)
-    );
+    const allEdges: ExtendedEdge<Root, Node>[] = [];
+    let edges = allEdges;
+    let afterOffset = afterIsDefined ? -1 : 0;
+    let beforeOffset = beforeIsDefined ? -1 : data.length;
 
-    if (isForwardsPagination) {
-      let startIdx = after
-        ? edges.findIndex((edge) => edge.cursor === after)
-        : 0;
+    data.forEach((node, index) => {
+      const edge = makeEdge(index, root, node);
+      allEdges.push(edge);
 
-      if (startIdx === -1)
-        throw new GraphQLConnectionError(
-          `No record found for the provided "after" cursor: "${after}".`
-        );
+      if (afterIsDefined && edge.cursor === after) afterOffset = index;
+      if (beforeIsDefined && edge.cursor === before) beforeOffset = index;
+    });
 
-      if (after) startIdx += 1;
+    if (afterOffset === -1) throwCursorError("after", after!);
+    if (beforeOffset === -1) throwCursorError("before", before!);
+    // TODO: Validate that end isn't before start
 
-      return edges.slice(startIdx, startIdx + first);
+    let startOffset = 0;
+    let endOffset = data.length;
+
+    if (firstIsDefined) {
+      startOffset = afterIsDefined ? afterOffset + 1 : afterOffset;
+      endOffset = Math.min(beforeOffset, startOffset + first);
+      edges = allEdges.slice(startOffset, endOffset);
     }
 
-    if (isBackwardsPagination) {
-      const endIdx = before
-        ? edges.findIndex((edge) => edge.cursor === before)
-        : edges.length;
-
-      if (endIdx === -1)
-        throw new GraphQLConnectionError(
-          `No record found for the provided "before" cursor: "${before}".`
-        );
-
-      return edges.slice(endIdx - last, endIdx);
+    if (lastIsDefined) {
+      startOffset = Math.max(afterOffset, beforeOffset - last);
+      endOffset = beforeOffset;
+      edges = allEdges.slice(startOffset, endOffset);
     }
 
-    return edges;
+    return {
+      edges,
+      meta: {
+        afterOffset,
+        beforeOffset,
+        startOffset,
+        endOffset,
+      },
+    };
   });
 
-  const getNodes = once(() => getEdges().map((edge) => edge.node));
+  const getNodes = once(() => getEdges().edges.map((edge) => edge.node));
 
   return {
     get pageInfo() {
+      const {
+        edges,
+        meta: { afterOffset, beforeOffset, startOffset, endOffset },
+      } = getEdges();
+
       return {
         get hasNextPage() {
-          const edges = getEdges();
+          if (lastIsDefined || edges.length === 0) return false;
 
-          if (isBackwardsPagination || edges.length === 0) return false;
-
-          return (
-            edges.at(-1)!.cursor !== toCursor(data.at(-1)!, data.length - 1)
-          );
+          return endOffset < (beforeIsDefined ? beforeOffset : data.length);
         },
         get hasPreviousPage() {
-          const edges = getEdges();
+          if (firstIsDefined || edges.length === 0) return false;
 
-          if (isForwardsPagination || edges.length === 0) return false;
-
-          return edges.at(0)!.cursor !== toCursor(data.at(0)!, 0);
+          return startOffset > (afterIsDefined ? afterOffset + 1 : 0);
         },
         get startCursor() {
-          return getEdges().at(0)?.cursor ?? null;
+          return edges.at(0)?.cursor ?? null;
         },
         get endCursor() {
-          return getEdges().at(-1)?.cursor ?? null;
+          return edges.at(-1)?.cursor ?? null;
         },
       };
     },
@@ -107,7 +123,7 @@ export const toConnection = <Root, Node>(
       return getNodes();
     },
     get edges() {
-      return getEdges();
+      return getEdges().edges;
     },
     get totalCount() {
       return data.length;

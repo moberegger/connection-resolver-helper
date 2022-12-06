@@ -42,7 +42,7 @@ describe("pagination", () => {
   });
 
   describe("forwards pagination", () => {
-    it("only returns first n items when first argument is provided", async () => {
+    it("returns first n items when first argument is provided", async () => {
       const result = await server.executeOperation({
         query: gql`
           query ($first: Int!) {
@@ -76,142 +76,292 @@ describe("pagination", () => {
       });
     });
 
-    it("only returns first n items after provided cursor", async () => {
-      const result = await server.executeOperation({
-        query: gql`
-          query ($first: Int!, $after: String!) {
-            things(first: $first, after: $after) {
-              pageInfo {
-                hasNextPage
-                hasPreviousPage
-                startCursor
-                endCursor
-              }
+    describe("with after parameter", () => {
+      it("returns first n items after provided cursor", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($first: Int!, $after: String!) {
+              things(first: $first, after: $after) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
 
-              edges {
-                node {
-                  id
-                  value
+                edges {
+                  node {
+                    id
+                    value
+                  }
                 }
               }
             }
-          }
-        `,
-        variables: { first: 2, after: offsetToCursor(0) },
+          `,
+          variables: { first: 2, after: offsetToCursor(0) },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data?.things.edges).toEqual(edges.slice(1, 3));
+        expect(result.data?.things.pageInfo).toEqual({
+          hasNextPage: true,
+          hasPreviousPage: false,
+          startCursor: offsetToCursor(1),
+          endCursor: offsetToCursor(2),
+        });
       });
 
-      expect(result.errors).toBeNil();
-      expect(result.data?.things.edges).toEqual(edges.slice(1, 3));
-      expect(result.data?.things.pageInfo).toEqual({
-        hasNextPage: true,
-        hasPreviousPage: false,
-        startCursor: offsetToCursor(1),
-        endCursor: offsetToCursor(2),
+      it("knows when it is at the last page", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($first: Int!, $after: String!) {
+              things(first: $first, after: $after) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
+
+                edges {
+                  node {
+                    id
+                    value
+                  }
+                }
+              }
+            }
+          `,
+          variables: { first: 2, after: offsetToCursor(3) },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data?.things.edges).toEqual(edges.slice(4));
+        expect(result.data?.things.pageInfo).toEqual({
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: offsetToCursor(4),
+          endCursor: offsetToCursor(5),
+        });
+      });
+
+      it("properly handles attempting to page past last item", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($first: Int!, $after: String!) {
+              things(first: $first, after: $after) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
+
+                edges {
+                  node {
+                    id
+                    value
+                  }
+                }
+              }
+            }
+          `,
+          variables: { first: 10, after: offsetToCursor(1) },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data?.things.edges).toEqual(edges.slice(2));
+        expect(result.data?.things.pageInfo).toEqual({
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: offsetToCursor(2),
+          endCursor: offsetToCursor(5),
+        });
+      });
+
+      it("errors when after cursor is not found", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($first: Int!, $after: String!) {
+              things(first: $first, after: $after) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
+
+                edges {
+                  node {
+                    id
+                    value
+                  }
+                }
+              }
+            }
+          `,
+          variables: { first: 2, after: "DoesNotExist" },
+        });
+
+        const error = result.errors?.[0];
+        expect(error).toBeInstanceOf(GraphQLError);
+        expect(error?.message).toBe(
+          `No record found for the provided "after" cursor: "DoesNotExist".`
+        );
       });
     });
 
-    it("knows when it is at the last page", async () => {
-      const result = await server.executeOperation({
-        query: gql`
-          query ($first: Int!, $after: String!) {
-            things(first: $first, after: $after) {
-              pageInfo {
-                hasNextPage
-                hasPreviousPage
-                startCursor
-                endCursor
-              }
+    describe("with before parameter", () => {
+      it("returns first n items before provided cursor", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($first: Int!, $before: String!) {
+              things(first: $first, before: $before) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
 
-              edges {
-                node {
-                  id
-                  value
+                edges {
+                  node {
+                    id
+                    value
+                  }
                 }
               }
             }
-          }
-        `,
-        variables: { first: 2, after: offsetToCursor(1) },
+          `,
+          variables: { first: 2, before: offsetToCursor(5) },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data?.things.edges).toEqual(edges.slice(0, 2));
+        expect(result.data?.things.pageInfo).toEqual({
+          hasNextPage: true,
+          hasPreviousPage: false,
+          startCursor: offsetToCursor(0),
+          endCursor: offsetToCursor(1),
+        });
       });
 
-      expect(result.errors).toBeNil();
-      expect(result.data?.things.edges).toEqual(edges.slice(2));
-      expect(result.data?.things.pageInfo).toEqual({
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor: offsetToCursor(2),
-        endCursor: offsetToCursor(3),
+      it("properly handles attempting to page past last item", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($first: Int!, $before: String!) {
+              things(first: $first, before: $before) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
+
+                edges {
+                  node {
+                    id
+                    value
+                  }
+                }
+              }
+            }
+          `,
+          variables: { first: 10, before: offsetToCursor(2) },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data?.things.edges).toEqual(edges.slice(0, 2));
+        expect(result.data?.things.pageInfo).toEqual({
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: offsetToCursor(0),
+          endCursor: offsetToCursor(1),
+        });
       });
     });
 
-    it("properly handles attempting to page past last item", async () => {
-      const result = await server.executeOperation({
-        query: gql`
-          query ($first: Int!, $after: String!) {
-            things(first: $first, after: $after) {
-              pageInfo {
-                hasNextPage
-                hasPreviousPage
-                startCursor
-                endCursor
-              }
+    describe("with both after and before parameters", () => {
+      it("returns first n items between provided cursors", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($first: Int!, $after: String!, $before: String!) {
+              things(first: $first, after: $after, before: $before) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
 
-              edges {
-                node {
-                  id
-                  value
+                edges {
+                  node {
+                    id
+                    value
+                  }
                 }
               }
             }
-          }
-        `,
-        variables: { first: 10, after: offsetToCursor(1) },
+          `,
+          variables: {
+            first: 2,
+            after: offsetToCursor(0),
+            before: offsetToCursor(5),
+          },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data?.things.edges).toEqual(edges.slice(1, 3));
+        expect(result.data?.things.pageInfo).toEqual({
+          hasNextPage: true,
+          hasPreviousPage: false,
+          startCursor: offsetToCursor(1),
+          endCursor: offsetToCursor(2),
+        });
       });
 
-      expect(result.errors).toBeNil();
-      expect(result.data?.things.edges).toEqual(edges.slice(2));
-      expect(result.data?.things.pageInfo).toEqual({
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor: offsetToCursor(2),
-        endCursor: offsetToCursor(3),
-      });
-    });
+      it("properly handles attempting to page past last item", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($first: Int!, $after: String!, $before: String!) {
+              things(first: $first, after: $after, before: $before) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
 
-    it("errors when after cursor is not found", async () => {
-      const result = await server.executeOperation({
-        query: gql`
-          query ($first: Int!, $after: String!) {
-            things(first: $first, after: $after) {
-              pageInfo {
-                hasNextPage
-                hasPreviousPage
-                startCursor
-                endCursor
-              }
-
-              edges {
-                node {
-                  id
-                  value
+                edges {
+                  node {
+                    id
+                    value
+                  }
                 }
               }
             }
-          }
-        `,
-        variables: { first: 2, after: "DoesNotExist" },
-      });
+          `,
+          variables: {
+            first: 10,
+            after: offsetToCursor(1),
+            before: offsetToCursor(5),
+          },
+        });
 
-      const error = result.errors?.[0];
-      expect(error).toBeInstanceOf(GraphQLError);
-      expect(error?.message).toBe(
-        `No record found for the provided "after" cursor: "DoesNotExist".`
-      );
+        expect(result.errors).toBeNil();
+        expect(result.data?.things.edges).toEqual(edges.slice(2, 5));
+        expect(result.data?.things.pageInfo).toEqual({
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: offsetToCursor(2),
+          endCursor: offsetToCursor(4),
+        });
+      });
     });
   });
 
   describe("backwards pagination", () => {
-    it("only returns last n items when first argument is provided", async () => {
+    it("only returns last n items when last argument is provided", async () => {
       const result = await server.executeOperation({
         query: gql`
           query ($last: Int!) {
@@ -236,146 +386,296 @@ describe("pagination", () => {
       });
 
       expect(result.errors).toBeNil();
-      expect(result.data?.things.edges).toEqual(edges.slice(2));
+      expect(result.data?.things.edges).toEqual(edges.slice(4));
       expect(result.data?.things.pageInfo).toEqual({
         hasNextPage: false,
         hasPreviousPage: true,
-        startCursor: offsetToCursor(2),
-        endCursor: offsetToCursor(3),
+        startCursor: offsetToCursor(4),
+        endCursor: offsetToCursor(5),
       });
     });
 
-    it("only returns last n items before provided cursor", async () => {
-      const result = await server.executeOperation({
-        query: gql`
-          query ($last: Int!, $before: String!) {
-            things(last: $last, before: $before) {
-              pageInfo {
-                hasNextPage
-                hasPreviousPage
-                startCursor
-                endCursor
-              }
+    describe("with before parameter", () => {
+      it("returns last n items before provided cursor", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($last: Int!, $before: String!) {
+              things(last: $last, before: $before) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
 
-              edges {
-                node {
-                  id
-                  value
+                edges {
+                  node {
+                    id
+                    value
+                  }
                 }
               }
             }
-          }
-        `,
-        variables: { last: 2, before: offsetToCursor(3) },
+          `,
+          variables: { last: 2, before: offsetToCursor(3) },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data?.things.edges).toEqual(edges.slice(1, 3));
+        expect(result.data?.things.pageInfo).toEqual({
+          hasNextPage: false,
+          hasPreviousPage: true,
+          startCursor: offsetToCursor(1),
+          endCursor: offsetToCursor(2),
+        });
       });
 
-      expect(result.errors).toBeNil();
-      expect(result.data?.things.edges).toEqual(edges.slice(1, 3));
-      expect(result.data?.things.pageInfo).toEqual({
-        hasNextPage: false,
-        hasPreviousPage: true,
-        startCursor: offsetToCursor(1),
-        endCursor: offsetToCursor(2),
+      it("knows when it is at the first page", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($last: Int!, $before: String!) {
+              things(last: $last, before: $before) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
+
+                edges {
+                  node {
+                    id
+                    value
+                  }
+                }
+              }
+            }
+          `,
+          variables: { last: 2, before: offsetToCursor(2) },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data?.things.edges).toEqual(edges.slice(0, 2));
+        expect(result.data?.things.pageInfo).toEqual({
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: offsetToCursor(0),
+          endCursor: offsetToCursor(1),
+        });
+      });
+
+      it("properly handles attempting to page past first item", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($last: Int!, $before: String!) {
+              things(last: $last, before: $before) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
+
+                edges {
+                  node {
+                    id
+                    value
+                  }
+                }
+              }
+            }
+          `,
+          variables: { last: 10, before: offsetToCursor(2) },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data?.things.edges).toEqual(edges.slice(0, 2));
+        expect(result.data?.things.pageInfo).toEqual({
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: offsetToCursor(0),
+          endCursor: offsetToCursor(1),
+        });
+      });
+
+      it("errors when after cursor is not found", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($last: Int!, $before: String!) {
+              things(last: $last, before: $before) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
+
+                edges {
+                  node {
+                    id
+                    value
+                  }
+                }
+              }
+            }
+          `,
+          variables: { last: 2, before: "DoesNotExist" },
+        });
+
+        const error = result.errors?.[0];
+        expect(error).toBeInstanceOf(GraphQLError);
+        expect(error?.message).toBe(
+          `No record found for the provided "before" cursor: "DoesNotExist".`
+        );
       });
     });
 
-    it("knows when it is at the first page", async () => {
-      const result = await server.executeOperation({
-        query: gql`
-          query ($last: Int!, $before: String!) {
-            things(last: $last, before: $before) {
-              pageInfo {
-                hasNextPage
-                hasPreviousPage
-                startCursor
-                endCursor
-              }
+    describe("with after parameter", () => {
+      it("returns last n items after provided cursor", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($last: Int!, $after: String!) {
+              things(last: $last, after: $after) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
 
-              edges {
-                node {
-                  id
-                  value
+                edges {
+                  node {
+                    id
+                    value
+                  }
                 }
               }
             }
-          }
-        `,
-        variables: { last: 2, before: offsetToCursor(2) },
+          `,
+          variables: { last: 2, after: offsetToCursor(1) },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data?.things.edges).toEqual(edges.slice(4, 6));
+        expect(result.data?.things.pageInfo).toEqual({
+          hasNextPage: false,
+          hasPreviousPage: true,
+          startCursor: offsetToCursor(4),
+          endCursor: offsetToCursor(5),
+        });
       });
 
-      expect(result.errors).toBeNil();
-      expect(result.data?.things.edges).toEqual(edges.slice(0, 2));
-      expect(result.data?.things.pageInfo).toEqual({
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor: offsetToCursor(0),
-        endCursor: offsetToCursor(1),
+      it("properly handles attempting to page past first item", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($last: Int!, $after: String!) {
+              things(last: $last, after: $after) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
+
+                edges {
+                  node {
+                    id
+                    value
+                  }
+                }
+              }
+            }
+          `,
+          variables: { last: 10, after: offsetToCursor(4) },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data?.things.edges).toEqual(edges.slice(4, 6));
+        expect(result.data?.things.pageInfo).toEqual({
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: offsetToCursor(4),
+          endCursor: offsetToCursor(5),
+        });
       });
     });
 
-    it("properly handles attempting to page past first item", async () => {
-      const result = await server.executeOperation({
-        query: gql`
-          query ($last: Int!, $before: String!) {
-            things(last: $last, before: $before) {
-              pageInfo {
-                hasNextPage
-                hasPreviousPage
-                startCursor
-                endCursor
-              }
+    describe("with both after and before parameters", () => {
+      it("returns last n items between provided cursors", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($last: Int!, $after: String!, $before: String!) {
+              things(last: $last, after: $after, before: $before) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
 
-              edges {
-                node {
-                  id
-                  value
+                edges {
+                  node {
+                    id
+                    value
+                  }
                 }
               }
             }
-          }
-        `,
-        variables: { last: 10, before: offsetToCursor(2) },
+          `,
+          variables: {
+            last: 2,
+            after: offsetToCursor(0),
+            before: offsetToCursor(5),
+          },
+        });
+
+        expect(result.errors).toBeNil();
+        expect(result.data?.things.edges).toEqual(edges.slice(3, 5));
+        expect(result.data?.things.pageInfo).toEqual({
+          hasNextPage: false,
+          hasPreviousPage: true,
+          startCursor: offsetToCursor(3),
+          endCursor: offsetToCursor(4),
+        });
       });
 
-      expect(result.errors).toBeNil();
-      expect(result.data?.things.edges).toEqual(edges.slice(0, 2));
-      expect(result.data?.things.pageInfo).toEqual({
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor: offsetToCursor(0),
-        endCursor: offsetToCursor(1),
-      });
-    });
+      it("properly handles attempting to page past first item", async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($last: Int!, $after: String!, $before: String!) {
+              things(last: $last, after: $after, before: $before) {
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
 
-    it("errors when after cursor is not found", async () => {
-      const result = await server.executeOperation({
-        query: gql`
-          query ($last: Int!, $before: String!) {
-            things(last: $last, before: $before) {
-              pageInfo {
-                hasNextPage
-                hasPreviousPage
-                startCursor
-                endCursor
-              }
-
-              edges {
-                node {
-                  id
-                  value
+                edges {
+                  node {
+                    id
+                    value
+                  }
                 }
               }
             }
-          }
-        `,
-        variables: { last: 2, before: "DoesNotExist" },
-      });
+          `,
+          variables: {
+            last: 10,
+            after: offsetToCursor(1),
+            before: offsetToCursor(5),
+          },
+        });
 
-      const error = result.errors?.[0];
-      expect(error).toBeInstanceOf(GraphQLError);
-      expect(error?.message).toBe(
-        `No record found for the provided "before" cursor: "DoesNotExist".`
-      );
+        expect(result.errors).toBeNil();
+        expect(result.data?.things.edges).toEqual(edges.slice(1, 5));
+        expect(result.data?.things.pageInfo).toEqual({
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: offsetToCursor(1),
+          endCursor: offsetToCursor(4),
+        });
+      });
     });
   });
 });
