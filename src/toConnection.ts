@@ -21,9 +21,9 @@ const throwCursorError = (arg: string, cursor: string) => {
 };
 
 export const toEdge =
-  <Node>(toCursor: ToCursorFunction<Node>) =>
+  <Node>(args: ConnectionArguments, toCursor: ToCursorFunction<Node>) =>
   <Root>(index: number, root: Root, node: Node): ExtendedEdge<Root, Node> => {
-    const getCursor = once(() => toCursor(node, index));
+    const getCursor = once(() => toCursor(node, args, index));
 
     return {
       root,
@@ -37,15 +37,16 @@ export const toEdge =
 export const toConnection = <Root, Node>(
   root: Root,
   data: Node[],
-  { first, after, before, last }: ConnectionArguments,
+  args: ConnectionArguments,
   toCursor: ToCursorFunction<Node>
 ): ExtendedConnection<Root, Node> => {
+  const { first, after, before, last } = args;
   const afterIsDefined = typeof after === "string";
   const beforeIsDefined = typeof before === "string";
   const firstIsDefined = typeof first === "number";
   const lastIsDefined = typeof last === "number";
 
-  const makeEdge = toEdge(toCursor);
+  const makeEdge = toEdge(args, toCursor);
 
   const getEdges = once(() => {
     const allEdges: ExtendedEdge<Root, Node>[] = [];

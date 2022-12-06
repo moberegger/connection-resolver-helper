@@ -11,11 +11,19 @@ export interface MakeConnectionOptions<Node> {
   validateCursor?: ValidateCursorFunction;
 }
 
-export type ToCursorFunction<Node> = (node: Node, index: number) => string;
+export type ToCursorFunction<Node> = (
+  node: Node,
+  args: ConnectionArguments,
+  index: number
+) => string;
 
 export type ValidateCursorFunction = (cursor: string) => boolean;
 
-const defaultToCursor = <Node>(_: Node, index: number) => offsetToCursor(index);
+const defaultToCursor = <Node>(
+  _: Node,
+  __: ConnectionArguments,
+  index: number
+) => offsetToCursor(index);
 
 const defaultValidateCursor = (cursor: string) =>
   typeof cursor === "string" && cursor.length > 0;
