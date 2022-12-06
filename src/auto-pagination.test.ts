@@ -5,6 +5,7 @@ import { GraphQLError } from "graphql";
 import gql from "graphql-tag";
 
 import { edges, fixtures, typeDefs } from "./fixtures";
+
 import makeConnection, { offsetToCursor } from ".";
 
 describe("pagination", () => {

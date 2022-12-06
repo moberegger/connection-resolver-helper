@@ -2,10 +2,10 @@
 
 import { ApolloServer } from "apollo-server";
 import { GraphQLError } from "graphql";
-
 import gql from "graphql-tag";
 
 import { fixtures, typeDefs } from "./fixtures";
+
 import makeConnection from ".";
 
 describe("input validation", () => {
