@@ -1,7 +1,7 @@
 {
-  "extends": "@tsconfig/node16-strictest/tsconfig.json",
+  "extends": "@tsconfig/node16-strictest-esm/tsconfig.json",
   "compilerOptions": {
-    "outDir": "lib/cjs",
+    "outDir": "lib/esm",
     "declarationDir": "lib/types",
     "declaration": true,
     "sourceMap": true,
