@@ -11,6 +11,7 @@ import type { ConnectionArguments } from "graphql-relay";
 export interface ConnectionOptions<Node> {
   maxLimit?: number;
   paginationRequired?: boolean;
+  disableBackwardsPagination?: boolean;
   toCursor?: ToCursorFunction<Node>;
   validateCursor?: ValidateCursorFunction;
 }
@@ -42,10 +43,17 @@ const makeConnection = <
 >({
   maxLimit = 100,
   paginationRequired = false,
+  disableBackwardsPagination = false,
   toCursor = defaultToCursor,
   validateCursor = defaultValidateCursor,
 }: ConnectionOptions<Node> = {}) => {
-  validateConfig({ maxLimit, paginationRequired, toCursor, validateCursor });
+  validateConfig({
+    maxLimit,
+    paginationRequired,
+    disableBackwardsPagination,
+    toCursor,
+    validateCursor,
+  });
 
   return (resolver: GraphQLFieldResolver<Root, Context, Args, Result<Node>>) =>
     async (
@@ -54,7 +62,12 @@ const makeConnection = <
       context: Context,
       info: GraphQLResolveInfo
     ) => {
-      validateArgs({ maxLimit, paginationRequired, validateCursor })(args);
+      validateArgs({
+        maxLimit,
+        paginationRequired,
+        disableBackwardsPagination,
+        validateCursor,
+      })(args);
 
       return toConnection(
         root,

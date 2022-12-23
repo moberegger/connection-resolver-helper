@@ -6,10 +6,12 @@ import type { ConnectionArguments } from "graphql-relay";
 export default ({
     maxLimit,
     paginationRequired,
+    disableBackwardsPagination,
     validateCursor,
   }: {
     maxLimit: number;
     paginationRequired: boolean;
+    disableBackwardsPagination: boolean;
     validateCursor: ValidateCursorFunction;
   }) =>
   ({ after, before, first, last }: ConnectionArguments) => {
@@ -21,6 +23,11 @@ export default ({
     if (firstIsDefined && (typeof first !== "number" || first < 0))
       throw new GraphQLConnectionError(
         'Argument "first" must be a non-negative integer.'
+      );
+
+    if (disableBackwardsPagination && lastIsDefined)
+      throw new GraphQLConnectionError(
+        'Passing "last" to paginate the connection is not supported.'
       );
 
     if (lastIsDefined && (typeof last !== "number" || last < 0))

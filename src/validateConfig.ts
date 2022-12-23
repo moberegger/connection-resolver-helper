@@ -3,6 +3,7 @@ import type { ConnectionOptions } from ".";
 export default <Node>({
   maxLimit,
   paginationRequired,
+  disableBackwardsPagination,
   toCursor,
   validateCursor,
 }: ConnectionOptions<Node>) => {
@@ -14,6 +15,11 @@ export default <Node>({
   if (typeof paginationRequired !== "boolean")
     throw new Error(
       `Configuration option "paginationRequired" must be a boolean.`
+    );
+
+  if (typeof disableBackwardsPagination !== "boolean")
+    throw new Error(
+      `Configuration option "disableBackwardsPagination" must be a boolean.`
     );
 
   if (typeof toCursor !== "function")

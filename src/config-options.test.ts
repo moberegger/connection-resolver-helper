@@ -134,6 +134,44 @@ describe("configuration", () => {
     });
   });
 
+  describe("disableBackwardsPagination", () => {
+    describe("when backwards pagination is disabled", () => {
+      const resolvers = {
+        Query: {
+          things: makeConnection({ disableBackwardsPagination: true })(
+            () => fixtures
+          ),
+        },
+      };
+
+      const server = new ApolloServer({ typeDefs, resolvers });
+
+      it('returns error if "last" param is provided', async () => {
+        const result = await server.executeOperation({
+          query: gql`
+            query ($last: Int) {
+              things(last: $last) {
+                edges {
+                  node {
+                    id
+                    value
+                  }
+                }
+              }
+            }
+          `,
+          variables: { last: 10 },
+        });
+
+        const error = result.errors?.[0];
+        expect(error).toBeInstanceOf(GraphQLError);
+        expect(error?.message).toBe(
+          'Passing "last" to paginate the connection is not supported.'
+        );
+      });
+    });
+  });
+
   describe("toCursor", () => {
     const toCursor = (node: typeof fixtures[number]) =>
       node.value.split("").reverse().join("");
