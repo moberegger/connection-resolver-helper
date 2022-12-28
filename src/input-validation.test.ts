@@ -6,7 +6,7 @@ import gql from "graphql-tag";
 
 import { fixtures, typeDefs } from "./fixtures";
 
-import makeConnection from ".";
+import { makeConnection } from ".";
 
 describe("input validation", () => {
   const resolvers = {

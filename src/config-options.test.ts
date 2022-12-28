@@ -6,7 +6,7 @@ import gql from "graphql-tag";
 
 import { fixtures, typeDefs } from "./fixtures";
 
-import makeConnection, { offsetToCursor } from ".";
+import { makeConnection, offsetToCursor } from ".";
 
 describe("configuration", () => {
   describe("paginationRequired", () => {
@@ -52,7 +52,7 @@ describe("configuration", () => {
 
       const server = new ApolloServer({ typeDefs, resolvers });
 
-      it('does not return error if neither "first" or "last" params are provided', async () => {
+      it("returns all items when no pagination arguments are provided", async () => {
         const result = await server.executeOperation({
           query: gql`
             query {

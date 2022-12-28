@@ -2,7 +2,7 @@ import once from "lodash.once";
 
 import GraphQLConnectionError from "./GraphQLConnectionError";
 
-import type { GetTotalCountFunction, ToCursorFunction } from ".";
+import type { GetTotalCountFunction, ToCursorFunction } from "./makeConnection";
 import type { Connection, ConnectionArguments, Edge } from "graphql-relay";
 
 export interface ExtendedEdge<Root, Node> extends Edge<Node> {

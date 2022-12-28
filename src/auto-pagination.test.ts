@@ -6,7 +6,7 @@ import gql from "graphql-tag";
 
 import { edges, fixtures, typeDefs } from "./fixtures";
 
-import makeConnection, { offsetToCursor } from ".";
+import { makeConnection, offsetToCursor } from ".";
 
 describe("pagination", () => {
   const server = new ApolloServer({
@@ -16,30 +16,6 @@ describe("pagination", () => {
         things: makeConnection()(() => fixtures),
       },
     },
-  });
-
-  it("returns all items when no pagination arguments are provided", async () => {
-    const result = await server.executeOperation({
-      query: gql`
-        query {
-          things {
-            edges {
-              node {
-                id
-                value
-              }
-            }
-          }
-        }
-      `,
-    });
-
-    expect(result.errors).toBeNil();
-    expect(result.data).toEqual({
-      things: {
-        edges,
-      },
-    });
   });
 
   describe("forwards pagination", () => {
