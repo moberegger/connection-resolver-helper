@@ -1,12 +1,13 @@
 import type { ConnectionOptions } from ".";
 
-export default <Node>({
+export default <Root, Node>({
   maxLimit,
   paginationRequired,
   disableBackwardsPagination,
   toCursor,
   validateCursor,
-}: ConnectionOptions<Node>) => {
+  getTotalCount,
+}: ConnectionOptions<Root, Node>) => {
   if (typeof maxLimit !== "number" || maxLimit < 0)
     throw new Error(
       `Configuration option "maxLimit" must be a positive integer.`
@@ -29,4 +30,7 @@ export default <Node>({
     throw new Error(
       `Configuration option "validateCursor" must be a function.`
     );
+
+  if (typeof getTotalCount !== "function")
+    throw new Error(`Configuration option "getTotalCount" must be a function.`);
 };

@@ -8,12 +8,13 @@ import validateConfig from "./validateConfig";
 import type { GraphQLFieldResolver, GraphQLResolveInfo } from "graphql";
 import type { ConnectionArguments } from "graphql-relay";
 
-export interface ConnectionOptions<Node> {
+export interface ConnectionOptions<Root, Node> {
   maxLimit?: number;
   paginationRequired?: boolean;
   disableBackwardsPagination?: boolean;
   toCursor?: ToCursorFunction<Node>;
   validateCursor?: ValidateCursorFunction;
+  getTotalCount?: GetTotalCountFunction<Root, Node>;
 }
 
 export type ToCursorFunction<Node> = (
@@ -23,6 +24,12 @@ export type ToCursorFunction<Node> = (
 ) => string;
 
 export type ValidateCursorFunction = (cursor: string) => boolean;
+
+export type GetTotalCountFunction<Root, Node> = (
+  root: Root,
+  node: Node[],
+  args: ConnectionArguments
+) => number;
 
 type Result<Node> = Promise<Node[]> | Node[];
 
@@ -35,6 +42,8 @@ const defaultToCursor = <Node>(
 const defaultValidateCursor = (cursor: string) =>
   typeof cursor === "string" && cursor.length > 0;
 
+const defaultGetTotalCount = <Root, Node>(_: Root, data: Node[]) => data.length;
+
 const makeConnection = <
   Root,
   Node,
@@ -46,13 +55,15 @@ const makeConnection = <
   disableBackwardsPagination = false,
   toCursor = defaultToCursor,
   validateCursor = defaultValidateCursor,
-}: ConnectionOptions<Node> = {}) => {
+  getTotalCount = defaultGetTotalCount,
+}: ConnectionOptions<Root, Node> = {}) => {
   validateConfig({
     maxLimit,
     paginationRequired,
     disableBackwardsPagination,
     toCursor,
     validateCursor,
+    getTotalCount,
   });
 
   return (resolver: GraphQLFieldResolver<Root, Context, Args, Result<Node>>) =>
@@ -73,7 +84,8 @@ const makeConnection = <
         root,
         (await resolver(root, args, context, info)) ?? [],
         args,
-        toCursor
+        toCursor,
+        getTotalCount
       );
     };
 };

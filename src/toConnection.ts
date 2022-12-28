@@ -2,7 +2,7 @@ import once from "lodash.once";
 
 import GraphQLConnectionError from "./GraphQLConnectionError";
 
-import type { ToCursorFunction } from ".";
+import type { GetTotalCountFunction, ToCursorFunction } from ".";
 import type { Connection, ConnectionArguments, Edge } from "graphql-relay";
 
 export interface ExtendedEdge<Root, Node> extends Edge<Node> {
@@ -39,7 +39,8 @@ export const toConnection = <Root, Node>(
   root: Root,
   data: Node[],
   args: ConnectionArguments,
-  toCursor: ToCursorFunction<Node>
+  toCursor: ToCursorFunction<Node>,
+  getTotalCount: GetTotalCountFunction<Root, Node>
 ): ExtendedConnection<Root, Node> => {
   const { first, after, before, last } = args;
   const afterIsDefined = typeof after === "string";
@@ -128,7 +129,7 @@ export const toConnection = <Root, Node>(
       return getEdges().edges;
     },
     get totalCount() {
-      return data.length;
+      return getTotalCount(root, data, args);
     },
   };
 };
