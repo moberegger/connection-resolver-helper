@@ -32,6 +32,11 @@ export type GetTotalCountFunction<Root, Node> = (
 
 type Result<Node> = Promise<Node[]> | Node[];
 
+type ConnectionResolverOptions<Root, Node> = Pick<
+  ConnectionOptions<Root, Node>,
+  "toCursor" | "validateCursor"
+>;
+
 const defaultToCursor = <Node>(
   _: Node,
   __: ConnectionArguments,
@@ -52,20 +57,26 @@ export default <
   maxLimit = 100,
   paginationRequired = true,
   disableBackwardsPagination = false,
-  toCursor = defaultToCursor,
-  validateCursor = defaultValidateCursor,
+  toCursor: toCursorFromConfig = defaultToCursor,
+  validateCursor: validateCursorFromConfig = defaultValidateCursor,
   getTotalCount = defaultGetTotalCount,
 }: ConnectionOptions<Root, Node> = {}) => {
   validateConfig({
     maxLimit,
     paginationRequired,
     disableBackwardsPagination,
-    toCursor,
-    validateCursor,
+    toCursor: toCursorFromConfig,
+    validateCursor: validateCursorFromConfig,
     getTotalCount,
   });
 
-  return (resolver: GraphQLFieldResolver<Root, Context, Args, Result<Node>>) =>
+  return (
+      resolver: GraphQLFieldResolver<Root, Context, Args, Result<Node>>,
+      {
+        toCursor = toCursorFromConfig,
+        validateCursor = validateCursorFromConfig,
+      }: ConnectionResolverOptions<Root, Node> = {}
+    ) =>
     async (
       root: Root,
       args: Args,
