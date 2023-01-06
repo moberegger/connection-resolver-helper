@@ -1,0 +1,13 @@
+name: Run Linter
+
+on:
+  workflow_call:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - run: npm ci
+      - run: npm run lint
