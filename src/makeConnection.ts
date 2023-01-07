@@ -1,5 +1,3 @@
-import { offsetToCursor } from "graphql-relay";
-
 import { toConnection } from "./toConnection";
 import validateArgs from "./validateArgs";
 import validateConfig from "./validateConfig";
@@ -41,7 +39,7 @@ const defaultToCursor = <Node>(
   _: Node,
   __: ConnectionArguments,
   index: number
-) => offsetToCursor(index);
+) => index.toString();
 
 const defaultValidateCursor = (cursor: string) =>
   typeof cursor === "string" && cursor.length > 0;

@@ -2,11 +2,13 @@
 
 import { ApolloServer } from "apollo-server";
 import { GraphQLError } from "graphql";
+import { offsetToCursor } from "graphql-relay";
 import gql from "graphql-tag";
 
 import { fixtures, typeDefs } from "./fixtures";
+import encodeCursor from "./utils/encodeCursor";
 
-import { makeConnection, offsetToCursor } from ".";
+import { makeConnection } from ".";
 
 describe("configuration", () => {
   describe("paginationRequired", () => {
@@ -204,7 +206,7 @@ describe("configuration", () => {
       });
 
       expect(result.errors).toBeNil();
-      expect(result.data?.things.edges[0].cursor).toBe("CBA");
+      expect(result.data?.things.edges[0].cursor).toBe(encodeCursor("CBA"));
     });
   });
 

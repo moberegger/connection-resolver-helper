@@ -24,7 +24,12 @@ const throwCursorError = (arg: string, cursor: string) => {
 export const toEdge =
   <Node>(args: ConnectionArguments, toCursor: ToCursorFunction<Node>) =>
   <Root>(index: number, root: Root, node: Node): ExtendedEdge<Root, Node> => {
-    const getCursor = once(() => toCursor(node, args, index));
+    const getCursor = once(() =>
+      Buffer.from(
+        `arrayconnection:${toCursor(node, args, index)}`,
+        "utf8"
+      ).toString("base64")
+    );
 
     return {
       root,

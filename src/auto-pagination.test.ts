@@ -2,11 +2,12 @@
 
 import { ApolloServer } from "apollo-server";
 import { GraphQLError } from "graphql";
+import { offsetToCursor } from "graphql-relay";
 import gql from "graphql-tag";
 
 import { edges, fixtures, typeDefs } from "./fixtures";
 
-import { connection, offsetToCursor } from ".";
+import { connection } from ".";
 
 describe("pagination", () => {
   const server = new ApolloServer({
